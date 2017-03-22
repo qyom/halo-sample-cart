@@ -3,3 +3,15 @@ default:
     paths:
         features: features
         bootstrap: %behat.paths.features%/bootstrap
+    context:
+        class:          \FeatureContext
+        parameters:
+            shipping:
+              type: default
+              parameters:
+                thresholdWeightEach: 10
+                heavyItemCost: 20
+                flatRate: 5
+                thresholdSubtotal: 100
+
+

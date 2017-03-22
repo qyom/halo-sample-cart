@@ -8,6 +8,10 @@ use Behat\Gherkin\Node\PyStringNode,
     Behat\Gherkin\Node\TableNode;
 use PHPUnit_Framework_Assert as Assert;
 use Hautelook\Cart;
+use Hautelook\Cart\Coupon\CouponPercent;
+use Hautelook\Filter;
+use \Hautelook\Shipping\Factory as ShippingFactory;
+
 
 /**
  * Features context.
@@ -17,14 +21,17 @@ class FeatureContext extends BehatContext
 
     private $cart;
 
+    private $config;
+
     /**
      * Initializes context.
      * Every scenario gets it's own context object.
      *
      * @param array $parameters context parameters (set them up through behat.yml)
      */
-    public function __construct(array $parameters)
+    public function __construct(array $config)
     {
+        $this->config = $config;
     }
 
     /**
@@ -32,7 +39,7 @@ class FeatureContext extends BehatContext
      */
     public function iHaveAnEmptyCart()
     {
-        $this->cart = new Cart();
+        $this->cart = new Cart([], [], ShippingFactory::getCalculator($this->config));
     }
 
     /**
@@ -40,7 +47,7 @@ class FeatureContext extends BehatContext
      */
     public function mySubtotalShouldBeDollars($subtotal)
     {
-        Assert::assertEquals($subtotal, $this->cart->subtotal());
+        Assert::assertEquals($subtotal, $this->cart->subtotal() - $this->cart->discounts());
     }
 
     /**
@@ -48,7 +55,10 @@ class FeatureContext extends BehatContext
      */
     public function iAddADollarItemNamed($dollars, $product_name)
     {
-        throw new PendingException();
+        $this->cart->addItem(new Cart\Item([
+            Cart\Item::KEY_AMOUNT => $dollars,
+            Cart\Item::KEY_NAME => $product_name
+        ]));
     }
     
     /**
@@ -56,7 +66,11 @@ class FeatureContext extends BehatContext
      */
     public function iAddADollarItemWithWeight($dollars, $lb, $product_name)
     {
-        throw new PendingException();
+        $this->cart->addItem(new Cart\Item([
+            Cart\Item::KEY_AMOUNT => $dollars,
+            Cart\Item::KEY_NAME => $product_name,
+            Cart\Item::KEY_WEIGHT => $lb
+        ]));
     }
     
     /**
@@ -64,7 +78,7 @@ class FeatureContext extends BehatContext
      */
     public function myTotalShouldBeDollars($total)
     {
-        throw new PendingException();
+        Assert::assertEquals($total, $this->cart->getTotalAmount());
     }
 
     /**
@@ -72,16 +86,27 @@ class FeatureContext extends BehatContext
      */
     public function myQuantityOfProductsShouldBe($product_name, $quantity)
     {
-        throw new PendingException();
+        Assert::assertEquals($quantity, $this->cart->getTotalItemCount([
+            new Filter(Cart\Item::KEY_NAME, $product_name),
+        ]));
     }
     
 
     /**
      * @Given /^I have a cart with a "([^"]*)" dollar item named "([^"]*)"$/
      */
-    public function iHaveACartWithADollarItem($item_cost, $product_name)
+    public function iHaveACartWithADollarItem($item_price, $product_name)
     {
-        throw new PendingException();
+        $this->cart = new Cart(
+            [
+                new Cart\Item([
+                    Cart\Item::KEY_AMOUNT => $item_price,
+                    Cart\Item::KEY_NAME => $product_name,
+                ])
+            ],
+            [],
+            ShippingFactory::getCalculator($this->config)
+        );
     }
 
     /**
@@ -89,7 +114,7 @@ class FeatureContext extends BehatContext
      */
     public function iApplyAPercentCouponCode($discount)
     {
-        throw new PendingException();
+        $this->cart->addCoupon(new CouponPercent($discount));
     }
 
     /**
@@ -97,6 +122,6 @@ class FeatureContext extends BehatContext
      */
     public function myCartShouldHaveItems($item_count)
     {
-        throw new PendingException();
+        Assert::assertEquals($item_count, $this->cart->getTotalItemCount() );
     }
 }
